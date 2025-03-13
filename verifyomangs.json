@@ -1,0 +1,268 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Omang Verification API",
+    "description": "API for verifying citizen identity information against the Omang system",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.omang.gov.bw/Verify",
+      "description": "Omang API production server"
+    }
+  ],
+  "paths": {
+    "/verify": {
+      "post": {
+        "summary": "Verify citizen identity information",
+        "description": "Validates whether the provided personal details match the records associated with the given Omang number",
+        "operationId": "verifyIdentity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing or invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid API credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Omang number not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    },
+    "schemas": {
+      "VerificationRequest": {
+        "type": "object",
+        "required": [
+          "omangNumber",
+          "forenames",
+          "surname",
+          "dateOfBirth",
+          "placeOfBirth"
+        ],
+        "properties": {
+          "omangNumber": {
+            "type": "string",
+            "description": "The citizen's Omang identification number",
+            "example": "123456789",
+            "minLength": 9,
+            "maxLength": 9,
+            "pattern": "^[0-9]{9}$"
+          },
+          "forenames": {
+            "type": "string",
+            "description": "Citizen's forenames (first and middle names)",
+            "example": "Katlego Thabo",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "surname": {
+            "type": "string",
+            "description": "Citizen's surname",
+            "example": "Mokgosi",
+            "minLength": 2,
+            "maxLength": 50
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date",
+            "description": "Citizen's date of birth in ISO 8601 format (YYYY-MM-DD)",
+            "example": "1995-08-15"
+          },
+          "placeOfBirth": {
+            "type": "string",
+            "description": "Citizen's place of birth (city/village and district)",
+            "example": "Gaborone, South-East District",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "Male",
+              "Female",
+              "Other"
+            ],
+            "description": "Citizen's gender",
+            "example": "Male"
+          }
+        }
+      },
+      "VerificationResponse": {
+        "type": "object",
+        "required": [
+          "verified",
+          "fieldValidations",
+          "omangNumber"
+        ],
+        "properties": {
+          "verified": {
+            "type": "boolean",
+            "description": "Indicates whether the overall identity information has been verified successfully",
+            "example": true
+          },
+          "omangNumber": {
+            "type": "string",
+            "description": "The provided Omang number",
+            "example": "123456789"
+          },
+          "fieldValidations": {
+            "type": "object",
+            "description": "Validation results for each field",
+            "properties": {
+              "omangNumber": {
+                "type": "boolean",
+                "description": "Whether the Omang number is valid and exists",
+                "example": true
+              },
+              "forenames": {
+                "type": "boolean",
+                "description": "Whether the forenames match the record",
+                "example": true
+              },
+              "surname": {
+                "type": "boolean",
+                "description": "Whether the surname matches the record",
+                "example": true
+              },
+              "dateOfBirth": {
+                "type": "boolean",
+                "description": "Whether the date of birth matches the record",
+                "example": true
+              },
+              "placeOfBirth": {
+                "type": "boolean",
+                "description": "Whether the place of birth matches the record",
+                "example": true
+              },
+              "gender": {
+                "type": "boolean",
+                "description": "Whether the gender matches the record",
+                "example": true
+              }
+            }
+          },
+          "message": {
+            "type": "string",
+            "description": "Additional message providing context for the verification result",
+            "example": "Identity verification successful"
+          }
+        }
+      },
+      "ValidationErrorResponse": {
+        "type": "object",
+        "required": [
+          "errors"
+        ],
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "field",
+                "message"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "The name of the field with validation errors",
+                  "example": "omangNumber"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Detailed description of the validation error",
+                  "example": "Omang number must be 9 digits"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "errorCode",
+          "message"
+        ],
+        "properties": {
+          "errorCode": {
+            "type": "string",
+            "description": "Error code for the failed operation",
+            "example": "INVALID_OMANG"
+          },
+          "message": {
+            "type": "string",
+            "description": "Detailed description of the error",
+            "example": "The provided Omang number is invalid or does not exist"
+          }
+        }
+      }
+    }
+  }
+}
